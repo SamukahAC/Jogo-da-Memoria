@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+
+<html lang = "pt-br">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width-device-width, initial-scale=1.0, user-scable-no"/>
+
+        <title> Jogo da Memória </title>
+
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                user-select: none;
+            }
+
+            body {
+                min-height: 100vh;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+                position: relative;
+                overflow-x: hidden;
+            }
+
+            /* Mensagem flutuante */
+            body::before {
+                content: "Feito por @samukah_ac";
+                position: absolute;
+                top: 10px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 40px;
+                opacity: 0.2;
+                pointer-events: none;
+                white-space: nowrap;
+                animation: float 20s linear infinite;
+            }
+
+            @keyframes float {
+                0% {
+                    transform: translateX(-100%);
+                }
+                100% {
+                    transform: translateX(100%);
+                }
+            }
+            
+            /* max-width cuida do tamanho do layout */
+            .game-wrapper {
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 30px;
+                padding: 25px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                max-width: 750px; 
+                width: 100%;
+                transition: transform 0.3s ease;
+            }
+
+            .game-header {
+                text-align: center;
+                margin-bottom: 25px;
+            }
+
+            h1 {
+                font-size: 2.5em;
+                color: #ff6b6b;
+                text-shadow: 2px 2px 0 #ffd93d;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 15px;
+            }
+
+            .stats {
+                display: flex;
+                justify-content: center;
+                gap: 40px;
+                margin: 15px 0;
+                flex-wrap: wrap;
+            }
+
+            .stat-card {
+                background: linear-gradient(135deg, #ffd89b, #c7e9fb);
+                padding: 10px 25px;
+                border-radius: 50px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .stat-label {
+                font-size: 14px;
+                color: #555;
+                letter-spacing: 1px;
+            }
+
+            .stat-value {
+                font-size: 32px;
+                font-weight: bold;
+                color: #ff6b6b;
+            }
+
+            .message-area {
+                text-align: center;
+                margin: 15px 0;
+                font-size: 20px;
+                font-weight: bold;
+                color: #764ba2;
+                min-height: 50px;
+            }
+            /* grid-template-columns cuida das colunas */
+            .game-board {
+                display: grid;
+                grid-template-columns: repeat(8, 1fr);
+                gap: 15px;
+                margin: 20px 0;
+                padding: 10px;
+            }
+
+            .card {
+                aspect-ratio: 1 / 1;
+                background: linear-gradient(135deg, #ffd89b, #ffb347);
+                border-radius: 15px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 25px;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                transform-style: preserve-3d;
+                position: relative;
+                box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
+            }
+
+            .card.flipped,
+            .card.matched {
+                background: linear-gradient(135deg, #a8edea, #fed6e3);
+                transform: scale(0.98);
+            }
+
+            .card.matched {
+                cursor: default;
+                opacity: 0.7;
+                transform: scale(0.95);
+                filter: grayscale(0.2);
+            }
+
+            .card-content {
+                display: none;
+            }
+
+            .card.flipped .card-content,
+            .card.matched .card-content {
+                display: block;
+            }
+
+            .card::before {
+                content: "?";
+                font-size: 50px;
+                font-weight: bold;
+                color: white;
+                position: absolute;
+            }
+
+            .card.flipped::before,
+            .card.matched::before {
+                display: none;
+            }
+
+            .btn {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                font-size: 18px;
+                border-radius: 50px;
+                cursor: pointer;
+                font-weight: bold;
+                transition:
+                transform 0.2s,
+                box-shadow 0.2s;
+                margin: 0 10px;
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+
+            .btn:active {
+                transform: translateY(0);
+            }
+
+            .controls {
+                text-align: center;
+                margin-top: 20px;
+            }
+
+            /* Confetti animation */
+            .confetti {
+                position: fixed;
+                width: 10px;
+                height: 10px;
+                background-color: #f00;
+                position: absolute;
+                animation: confetti-fall 3s linear forwards;
+                pointer-events: none;
+            }
+
+            @keyframes confetti-fall {
+                to {
+                    transform: translateY(100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+
+            /* Responsive design */
+            @media (max-width: 600px) {
+                .game-board {
+                    gap: 10px;
+                }
+
+                .card {
+                    font-size: 35px;
+                }
+
+                h1 {
+                    font-size: 1.8em;
+                }
+
+                .stat-value {
+                    font-size: 24px;
+                }
+
+                .game-wrapper {
+                    padding: 15px;
+                }
+            }
+
+            @media (max-width: 450px) {
+                .game-board {
+                    gap: 8px;
+                }
+
+                .card {
+                    font-size: 28px;
+                }
+
+                .stat-card {
+                    padding: 5px 15px;
+                }
+            }
+
+            /* Win animation */
+            @keyframes winPulse {
+                0%,
+                100% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.02);
+                }
+            }
+
+            .game-wrapper.win {
+                animation: winPulse 0.5s ease 3;
+            }
+        </style>
+    </head>
+    
+    <body>
+        <div class = "game-wrapper">
+            <div class = "game-header">
+                <h1> Jogo da Memória </h1>
+
+                <div class = "stats">
+                    <div class = "stat-card">
+                        <div class = "stat-label"> Movimentos </div>
+                        <div class = "stat-value" id = "moves"> 0 </div>
+                    </div>
+
+                    <div class = "stat-card">
+                        <div class = "stat-label"> Tempo </div>
+                        <div class = "stat-value" id = "time"> 0 </div>
+                    </div>
+
+                    <div class = "stat-card">
+                        <div class = "stat-label"> Combinação </div>
+                        <div class = "stat-value" id = "matches"> 0 </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class = "message-area" id = "message"> Encontre todas as combinações! </div>
+            <div class = "game-board" id = "gameBoard"></div>
+
+            <div class = "controls">
+                <button class = "btn" id = "resetBtn"> Novo Jogo </button>
+                <button class = "btn" id = "shuffleBtn"> Embaralhar </button>
+            </div>
+        </div>
+
+        <script>
+
+            const items = [
+                "1",
+                "1",
+                "2",
+                "2",
+                "3",
+                "3",
+                "4",
+                "4",
+                "A",
+                "A",
+                "B",
+                "B",
+                "C",
+                "C",
+                "S",
+                "S",
+                "Z",
+                "Z",
+                "a",
+                "a",
+                "b",
+                "b",
+                "c",
+                "c",
+                "s",
+                "s",
+                "z",
+                "z",
+                "25",
+                "25",
+                "5",
+                "5",
+                "67",
+                "67",
+                "76",
+                "76",
+                "6",
+                "6",
+                "7",
+                "7",
+                "I",
+                "I",
+                "i",
+                "i",
+                "l",
+                "l",
+                "L",
+                "L",
+                "H",
+                "H",
+                "h",
+                "h",
+                "01",
+                "01",
+                "100",
+                "100",
+                "10",
+                "10",
+                "11",
+                "11",
+                "Fy",
+                "Fy",
+                "<3",
+                "<3",
+                "Sam",
+                "Sam",
+                "Follow",
+                "Follow",
+                "Me",
+                "Me",
+                "ABC",
+                "ABC",
+
+            ];
+
+            let cards = []
+            let flipped_cards = [];
+            let matched_pairs = 0;
+            let moves = 0;
+            let timer = 0;
+            let timer_interval = null;
+            let game_active = true;
+            let lock_board = false;
+
+            const gameBoard = document.getElementById("gameBoard");
+            const movesDisplay = document.getElementById("moves");
+            const timeDisplay = document.getElementById("time");
+            const matchesDisplay = document.getElementById("matches");
+            const messageDisplay = document.getElementById("message");
+            const resetBtn = document.getElementById("resetBtn");
+            const shuffleBtn = document.getElementById("shuffleBtn");
+
+            /*
+                Função para embaralhar as cartas
+                Algoritmo de Fisher-Yates
+            */ 
+            function shuffleArray(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            // Iniciar ou reiniciar o jogo
+            function Iniciar_Game() {
+                // Se estiver contando o tempo, pare
+                if (timer_interval) {
+                    clearInterval(timer_interval);
+                    timerInterval = null;
+                }
+
+                // Reseta os status do jogo
+                cards = [...items];
+                cards = shuffleArray(cards);
+                flipped_cards = [];
+                matched_pairs = 0;
+                moves = 0;
+                timer = 0;
+                game_active = true;
+                lock_board = false;
+
+                // Atualiza o display
+                movesDisplay.textContent = moves;
+                matchesDisplay.textContent = matched_pairs;
+                timeDisplay.textContent = formatTime(timer);
+                messageDisplay.innerHTML = " Encontre todas as combinações!";
+                messageDisplay.style.color = "#764ba2";
+
+                // Inicia a contagem de tempo
+                timer_interval = setInterval(updateTimer, 1000);
+
+                // Renderiza o tabuleiro || terreno do jogo
+                renderBoard();
+            }
+
+            // Format time as MM:SS
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+            }
+
+            // Atualiza o tempo
+            function updateTimer() {
+                if (game_active && matched_pairs < items.length / 2) {
+                    timer++;
+                    timeDisplay.textContent = formatTime(timer);
+                }
+            }
+            // Renderiza
+            function renderBoard() 
+            {
+                gameBoard.innerHTML = "";
+
+                cards.forEach((items, index) => {
+                
+                    const card = document.createElement("div");
+                    card.className = "card";
+
+                    if (flipped_cards.includes(index)) {
+                        card.classList.add("flipped");
+                    }
+                    card.innerHTML = `<div class="card-content">${items}</div>`;
+                    card.addEventListener("click", () => Flip_Card(index));
+                    gameBoard.appendChild(card);
+                });
+            }
+
+            // Handle card flip
+            function Flip_Card(index) {
+                // Evita clicks desnecessários
+                if (!game_active || lock_board || flipped_cards.includes(index) || cards[index] === null) {
+                    return;
+                }
+
+                // Adiciona para as cartas viradas (flipped cards)
+                flipped_cards.push(index);
+
+                // Update card display
+                const cardsElements = document.querySelectorAll(".card");
+                cardsElements[index].classList.add("flipped");
+
+                // Som ao clicar na carta
+                Flip_Sound();
+
+                // Checa as duas cartas viradas
+                if (flipped_cards.length === 2) {
+                    moves++;
+                    movesDisplay.textContent = moves;
+                    checkMatch();
+                }
+            }
+
+            function Flip_Sound() 
+            {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    oscillator.frequency.value = 880;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.1);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    
+                    audioContext.close();
+                } catch (e) {
+                    // Falha silenciosa caso o áudio não seja compatível
+                    }
+            }
+
+            // Checa se combinam
+            function checkMatch() {
+                const [index1, index2] = flipped_cards;
+                const card1 = cards[index1];
+                const card2 = cards[index2];
+
+                if (card1 === card2) {
+                    // Combinam
+                    matched_pairs++;
+                    matchesDisplay.textContent = matched_pairs;
+
+                    // Marcando quem combina
+                    setTimeout(() => {
+                        const cardElements = document.querySelectorAll(".card");
+                        
+                        cardElements[index1].classList.add("matched");
+                        cardElements[index2].classList.add("matched");
+                        
+                        cardElements[index1].style.pointerEvents = "none";
+                        cardElements[index2].style.pointerEvents = "none";
+
+                        // Limpando 
+                        flipped_cards = [];
+                        lock_board = false;
+
+                        // Verificando se venceu
+                        if (matched_pairs === items.length / 2) {
+                            Win_Game()
+                        }
+                    }, 300);
+                    lock_board = true;
+                } else {
+                    // Sem combinação - retorna como tava antes
+                    lock_board = true;
+                    setTimeout(() => {
+                        const cardElements = document.querySelectorAll(".card");
+                        cardElements[index1].classList.remove("flipped");
+                        cardElements[index2].classList.remove("flipped");
+                        flipped_cards = [];
+                        lock_board = false;
+                    }, 800);
+                }
+            }
+
+            // função pra celebrar por ganhar o jogo
+            function Win_Game() 
+            {
+                game_active = false;
+                
+                if (timer_interval) {
+                    clearInterval(timer_interval);
+                    timer_interval = null;
+                }
+
+                messageDisplay.innerHTML = "🎉 PARABÉNS, VC GANHOUUU! 🎉";
+                messageDisplay.style.color = "#ff6b6b";
+                messageDisplay.style.fontSize = "20px";
+
+                // adiciona a animação de vitória ao wrappper
+                const wrapper = document.querySelector(".game-wrapper");
+                wrapper.classList.add("win");
+                setTimeout(() => wrapper.classList.remove("win"), 500);
+
+                // Cria o efeito de confete
+                createConfetti();
+
+                // Mostra todos os status (movimentos e tempo) para terminar o jogo 
+                setTimeout(() => {
+                    const timeSpent = formatTime(timer);
+                    alert(`🎉 Você ganhou com ${moves} lances e ${timeSpent}! 🎉\n 🎉Parabéns!🎉`);
+                }, 100);
+            }
+
+            // Cria o efeito de confete
+            function createConfetti() {
+                const colors = ["#ff6b6b", "#ffd93d", "#6bcf7f", "#a8edea", "#ff9a9e"];
+                for (let i = 0; i < 100; i++) {
+                    setTimeout(() => {
+                        const confetti = document.createElement("div");
+                        confetti.className = "confetti";
+                        confetti.style.left = Math.random() * window.innerWidth + "px";
+                        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        confetti.style.width = Math.random() * 8 + 4 + "px";
+                        confetti.style.height = Math.random() * 8 + 4 + "px";
+                        confetti.style.animationDuration = Math.random() * 2 + 1 + "s";
+                        document.body.appendChild(confetti);
+
+                        setTimeout(() => confetti.remove(), 3000);
+                    }, i * 30);
+                }
+            }
+
+            // Reseta o jogo
+            function Reset_Game() {
+                if (timer_interval) {
+                    clearInterval(timer_interval);
+                    timer_interval = null;
+                }
+                Iniciar_Game();
+            }
+
+            // Embaralha o resto das cartas
+            function shuffleRemaining() {
+                if (!game_active || matched_pairs === items.length / 2) {
+                    Reset_Game();
+                    return;
+                }
+
+                // Identifica quais cartas não combinam
+                const matchedIndices = [];
+                const cardElements = document.querySelectorAll(".card");
+                cardElements.forEach((card, idx) => {
+                    if (card.classList.contains("matched")) {
+                        matchedIndices.push(idx);
+                    }
+                });
+
+                // Obtem os valores das cartas que não combinam
+                const unmatchedCards = [];
+                cards.forEach((card, idx) => {
+                    if (!matchedIndices.includes(idx)) {
+                        unmatchedCards.push(card);
+                    }
+                });
+
+                // Embaralha as cartas que não combinam 
+                const shuffledUnmatched = shuffleArray([...unmatchedCards]);
+
+                // Coloca elas de volta
+                let unmatched_index = 0;
+                cards = cards.map((card, idx) => {
+                    if (matchedIndices.includes(idx)) {
+                        return card;
+                    } else {
+                        return shuffledUnmatched[unmatched_index++];
+                    }
+                });
+
+                // Reseta as cartas que foram viradas e libera o tabuleiro para novos clicks
+                flipped_cards = [];
+                lock_board = false;
+
+                // Renderiza novamente
+                renderBoard();
+
+                // Mensagem de embaralhamento
+                messageDisplay.innerHTML = "🃏 Cartas embaralhadas! Bora continuar! 🃏";
+                setTimeout(() => {
+                    if (game_active && matched_pairs < items.length / 2) {
+                        messageDisplay.innerHTML = "Encontre todos os pares!!";
+                    }
+                }, 2000);
+            }
+
+            // Event listeners || Reagem ao clicar nos botões 
+            resetBtn.addEventListener("click", Reset_Game);
+            shuffleBtn.addEventListener("click", shuffleRemaining);
+
+            // Inicia o jogo
+            Iniciar_Game();
+
+            // Se clicar no R, reinicia a partida
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "r" || e.key === "R") {
+                    Reset_Game();
+                } else if (e.key === "s" || e.key === "S") {
+                    shuffleRemaining();
+                }
+            });
+        </script>
+
+    </body>
+
+</html>
