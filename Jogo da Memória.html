@@ -177,6 +177,22 @@
                 display: none;
             }
 
+            .card-image {
+                width: 90%;
+                height: 90%;
+                object-fit: contain;
+                pointer-events: none;
+                position: center;
+            }
+
+            .card-text {
+                font-size: 2rem;
+                font-weight: bold;
+                color: #333;
+                pointer-events: none;
+            }
+
+
             .btn {
                 background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white;
@@ -313,78 +329,33 @@
         <script>
 
             const items = [
+                
+                "imagens/sereia.png",
+                "imagens/sereia.png",
+                "imagens/livro.png",
+                "imagens/livro.png",
+                "imagens/coração.png",
+                "imagens/coração.png",
+                "imagens/poção.png",
+                "imagens/poção.png",
+                "imagens/tijolo.png",
+                "imagens/tijolo.png",
                 "1",
                 "1",
-                "2",
-                "2",
-                "3",
-                "3",
-                "4",
-                "4",
-                "A",
-                "A",
-                "B",
-                "B",
-                "C",
-                "C",
-                "S",
-                "S",
-                "Z",
-                "Z",
-                "a",
-                "a",
-                "b",
-                "b",
-                "c",
-                "c",
-                "s",
-                "s",
-                "z",
-                "z",
-                "25",
-                "25",
-                "5",
-                "5",
-                "67",
-                "67",
-                "76",
-                "76",
-                "6",
-                "6",
-                "7",
-                "7",
-                "I",
-                "I",
-                "i",
-                "i",
-                "l",
-                "l",
-                "L",
-                "L",
-                "H",
-                "H",
-                "h",
-                "h",
+                "¹",
+                "¹",
                 "01",
                 "01",
-                "100",
-                "100",
-                "10",
-                "10",
-                "11",
-                "11",
-                "Fy",
-                "Fy",
-                "<3",
-                "<3",
-                "Sam",
-                "Sam",
-                "Follow",
-                "Follow",
-                "Me",
-                "Me",
-                "ABC",
-                "ABC",
+                "¬¬",
+                "¬¬",
+                "^^",
+                "^^",
+                "a",
+                "a",
+                "A",
+                "A",
+                
+
 
             ];
 
@@ -476,7 +447,17 @@
                     if (flipped_cards.includes(index)) {
                         card.classList.add("flipped");
                     }
-                    card.innerHTML = `<div class="card-content">${items}</div>`;
+
+                    let content = "";
+
+                    if ((typeof items == "string") && (items.match(/\.(png|jpg|jpeg|gif)$/i) ) ) {
+                        // Imagem ou Gif
+                        content = `<img src="${items}" class="card-image">`;
+                    } else {
+                        // é texto
+                        content =  `<span class="card-text">${items}</span>`
+                    }
+                    card.innerHTML = `<div class="card-content">${content}</div>`;
                     card.addEventListener("click", () => Flip_Card(index));
                     gameBoard.appendChild(card);
                 });
